@@ -7,25 +7,26 @@
     <style>
         /* Stylistyka Kasyna */
         body {
-            background-color: #0f2b1c; /* Ciemna zieleń jak stół do ruletki */
-            color: #ffd700; /* Złoty tekst */
+            background-color: #0f2b1c;
+            color: #ffd700;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
+            min-height: 100vh;
             margin: 0;
             background-image: radial-gradient(circle, #1a4a30 0%, #0f2b1c 80%);
+            padding: 20px 0;
         }
 
         .casino-container {
             text-align: center;
             background: #111;
-            padding: 40px 50px;
+            padding: 30px 40px;
             border-radius: 15px;
             border: 3px solid #ffd700;
             box-shadow: 0 0 30px rgba(255, 215, 0, 0.4);
-            max-width: 500px;
+            max-width: 600px;
             width: 90%;
         }
 
@@ -37,11 +38,36 @@
             text-shadow: 0 0 10px #ffd700, 0 0 20px #d4af37;
         }
 
-        p {
-            color: #ccc;
-            margin-bottom: 30px;
+        /* Sekcja zarządzania graczami */
+        .add-player-section {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 25px;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
         }
 
+        .add-player-section input {
+            width: 60%;
+            padding: 10px;
+        }
+
+        .add-btn {
+            padding: 10px 20px;
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .add-btn:hover { background: #218838; }
+
+        /* Sekcja losowania */
         .inputs {
             display: flex;
             justify-content: space-between;
@@ -49,9 +75,8 @@
             margin-bottom: 25px;
         }
 
-        input {
+        input[type="text"], select {
             padding: 12px;
-            width: 40%;
             border: 2px solid #ffd700;
             background: #222;
             color: white;
@@ -61,7 +86,12 @@
             outline: none;
         }
 
-        input:focus {
+        select {
+            width: 42%;
+            cursor: pointer;
+        }
+
+        input:focus, select:focus {
             box-shadow: 0 0 10px #ffd700;
         }
 
@@ -72,7 +102,7 @@
             text-shadow: 0 0 10px #ff0000;
         }
 
-        button {
+        .spin-btn {
             padding: 15px 40px;
             font-size: 18px;
             font-weight: bold;
@@ -87,12 +117,12 @@
             width: 100%;
         }
 
-        button:hover {
+        .spin-btn:hover {
             transform: translateY(-2px);
             box-shadow: 0 8px 20px rgba(255, 215, 0, 0.6);
         }
 
-        button:disabled {
+        .spin-btn:disabled {
             background: #555;
             color: #888;
             cursor: not-allowed;
@@ -101,27 +131,18 @@
         }
 
         #result {
-            margin-top: 30px;
+            margin-top: 25px;
             padding: 20px;
             border: 2px dashed #ffd700;
             background: rgba(255, 215, 0, 0.05);
             border-radius: 10px;
-            min-height: 80px;
+            min-height: 60px;
             display: flex;
             flex-direction: column;
             justify-content: center;
         }
 
-        .hidden {
-            visibility: hidden;
-            opacity: 0;
-            transition: visibility 0s, opacity 0.5s linear;
-        }
-
-        .visible {
-            visibility: visible;
-            opacity: 1;
-        }
+        .hidden { display: none !important; }
 
         #winnerName {
             font-size: 26px;
@@ -141,73 +162,225 @@
             50% { opacity: 0.5; }
             100% { opacity: 1; }
         }
+
+        /* Sekcja Historii */
+        .history-section {
+            margin-top: 30px;
+            text-align: left;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid #444;
+        }
+
+        .history-section h3 {
+            margin-top: 0;
+            color: #ccc;
+            border-bottom: 1px solid #555;
+            padding-bottom: 10px;
+            font-size: 18px;
+        }
+
+        .history-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .history-list li {
+            background: #222;
+            margin-bottom: 8px;
+            padding: 10px;
+            border-radius: 5px;
+            border-left: 3px solid #ffd700;
+            font-size: 14px;
+            color: #ddd;
+        }
+
+        .history-list li .time {
+            color: #888;
+            font-size: 12px;
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        .history-list li .match-winner {
+            color: #ffd700;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
 
     <div class="casino-container">
         <h1>🎰 Intelektualny Jackpot 🎰</h1>
-        <p>Wprowadź nazwy graczy i zagraj o wszystko!</p>
         
-        <div class="inputs">
-            <input type="text" id="player1" placeholder="Gracz 1">
-            <span class="vs">VS</span>
-            <input type="text" id="player2" placeholder="Gracz 2">
+        <div class="add-player-section">
+            <input type="text" id="newPlayer" placeholder="Wpisz nazwę nowego gracza">
+            <button class="add-btn" onclick="addPlayer()">Dodaj</button>
         </div>
         
-        <button id="spinBtn" onclick="drawWinner()">LOSUJ ZWYCIĘZCĘ!</button>
+        <div class="inputs">
+            <select id="player1">
+                <option value="">-- Gracz 1 --</option>
+            </select>
+            <span class="vs">VS</span>
+            <select id="player2">
+                <option value="">-- Gracz 2 --</option>
+            </select>
+        </div>
+        
+        <button id="spinBtn" class="spin-btn" onclick="drawWinner()">LOSUJ ZWYCIĘZCĘ!</button>
         
         <div id="result" class="hidden">
-            <h2 style="margin:0; font-size:18px; color:#ccc;">Zwycięzca:</h2>
+            <h2 style="margin:0; font-size:16px; color:#ccc;">Zwycięzca:</h2>
             <p id="winnerName"></p>
+        </div>
+
+        <div class="history-section">
+            <h3>Historia Losowań</h3>
+            <ul class="history-list" id="historyList">
+                </ul>
         </div>
     </div>
 
     <script>
+        // Inicjalizacja list (pobieranie z pamięci przeglądarki lub tworzenie pustych)
+        let playersRoster = JSON.parse(localStorage.getItem('jackpotPlayers')) || [];
+        let drawHistory = JSON.parse(localStorage.getItem('jackpotHistory')) || [];
+
+        // Przy załadowaniu strony zaktualizuj interfejs
+        window.onload = function() {
+            updateDropdowns();
+            updateHistoryUI();
+        };
+
+        // Funkcja dodająca gracza do listy
+        function addPlayer() {
+            const input = document.getElementById('newPlayer');
+            const name = input.value.trim();
+
+            if (name === "") {
+                alert("Wpisz nazwę gracza!");
+                return;
+            }
+
+            if (playersRoster.includes(name)) {
+                alert("Ten gracz jest już na liście!");
+                return;
+            }
+
+            playersRoster.push(name);
+            localStorage.setItem('jackpotPlayers', JSON.stringify(playersRoster)); // Zapis do pamięci
+            
+            input.value = ""; // Czyszczenie pola
+            updateDropdowns();
+        }
+
+        // Funkcja aktualizująca listy rozwijane
+        function updateDropdowns() {
+            const p1Select = document.getElementById('player1');
+            const p2Select = document.getElementById('player2');
+            
+            // Zachowaj obecny wybór, jeśli to możliwe
+            const val1 = p1Select.value;
+            const val2 = p2Select.value;
+
+            let optionsHtml = '<option value="">-- Wybierz --</option>';
+            playersRoster.forEach(player => {
+                optionsHtml += `<option value="${player}">${player}</option>`;
+            });
+
+            p1Select.innerHTML = optionsHtml;
+            p2Select.innerHTML = optionsHtml;
+
+            // Przywróć wybór
+            if(playersRoster.includes(val1)) p1Select.value = val1;
+            if(playersRoster.includes(val2)) p2Select.value = val2;
+        }
+
+        // Funkcja losująca
         function drawWinner() {
-            const p1 = document.getElementById('player1').value.trim();
-            const p2 = document.getElementById('player2').value.trim();
+            const p1 = document.getElementById('player1').value;
+            const p2 = document.getElementById('player2').value;
             const resultDiv = document.getElementById('result');
             const winnerName = document.getElementById('winnerName');
             const btn = document.getElementById('spinBtn');
 
-            // Sprawdzenie czy pola nie są puste
             if (!p1 || !p2) {
-                alert("Najpierw musisz wprowadzić nazwy obu graczy przy stole!");
+                alert("Musisz wybrać dwóch graczy z listy!");
                 return;
             }
 
-            // Zablokowanie przycisku na czas losowania
+            if (p1 === p2) {
+                alert("Gracz nie może grać sam ze sobą! Wybierz różnych graczy.");
+                return;
+            }
+
+            // Blokada przycisku
             btn.disabled = true;
             btn.innerText = "BĘBEN SIĘ KRĘCI...";
             
             resultDiv.classList.remove('hidden');
-            resultDiv.classList.add('visible');
             winnerName.classList.add('spin-animation');
 
-            // Symulacja napięcia - szybkie zmienianie imion (jak w ruletce)
             let counter = 0;
             const interval = setInterval(() => {
                 winnerName.innerText = counter % 2 === 0 ? p1 : p2;
                 counter++;
-            }, 100); // Zmiana co 100ms
+            }, 100);
 
-            // Ostateczny wynik po 2.5 sekundy
             setTimeout(() => {
                 clearInterval(interval);
                 winnerName.classList.remove('spin-animation');
                 
-                // Losowanie z równą szansą 50/50
                 const winner = Math.random() < 0.5 ? p1 : p2;
                 
-                // Formatowanie zwycięzcy
                 winnerName.innerText = "🏆 " + winner + " 🏆";
-                winnerName.style.color = "#ffd700"; // Złoty kolor dla wygranego
+                winnerName.style.color = "#ffd700";
                 
-                // Odblokowanie przycisku
                 btn.disabled = false;
                 btn.innerText = "ZAGRAJ PONOWNIE!";
+
+                // Zapisz do historii
+                saveToHistory(p1, p2, winner);
+
             }, 2500);
+        }
+
+        // Funkcja zapisująca wynik w historii
+        function saveToHistory(player1, player2, winner) {
+            const now = new Date();
+            const timeString = now.toLocaleDateString('pl-PL') + " " + now.toLocaleTimeString('pl-PL');
+            
+            const record = {
+                time: timeString,
+                p1: player1,
+                p2: player2,
+                win: winner
+            };
+
+            drawHistory.unshift(record); // Dodaje na początek listy
+            localStorage.setItem('jackpotHistory', JSON.stringify(drawHistory));
+            
+            updateHistoryUI();
+        }
+
+        // Funkcja odświeżająca widok historii
+        function updateHistoryUI() {
+            const list = document.getElementById('historyList');
+            list.innerHTML = "";
+
+            drawHistory.forEach(record => {
+                const li = document.createElement('li');
+                li.innerHTML = `
+                    <span class="time">🕒 ${record.time}</span>
+                    ${record.p1} vs ${record.p2} ➔ Wygrywa: <span class="match-winner">${record.win}</span>
+                `;
+                list.appendChild(li);
+            });
         }
     </script>
 
