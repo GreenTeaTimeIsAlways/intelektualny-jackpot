@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Intelektualny Jackpot</title>
+    <style>
+        /* Stylistyka Kasyna */
+        body {
+            background-color: #0f2b1c; /* Ciemna zieleń jak stół do ruletki */
+            color: #ffd700; /* Złoty tekst */
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-image: radial-gradient(circle, #1a4a30 0%, #0f2b1c 80%);
+        }
+
+        .casino-container {
+            text-align: center;
+            background: #111;
+            padding: 40px 50px;
+            border-radius: 15px;
+            border: 3px solid #ffd700;
+            box-shadow: 0 0 30px rgba(255, 215, 0, 0.4);
+            max-width: 500px;
+            width: 90%;
+        }
+
+        h1 {
+            margin-top: 0;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-size: 28px;
+            text-shadow: 0 0 10px #ffd700, 0 0 20px #d4af37;
+        }
+
+        p {
+            color: #ccc;
+            margin-bottom: 30px;
+        }
+
+        .inputs {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+
+        input {
+            padding: 12px;
+            width: 40%;
+            border: 2px solid #ffd700;
+            background: #222;
+            color: white;
+            border-radius: 8px;
+            font-size: 16px;
+            text-align: center;
+            outline: none;
+        }
+
+        input:focus {
+            box-shadow: 0 0 10px #ffd700;
+        }
+
+        .vs {
+            font-weight: bold;
+            font-size: 24px;
+            color: #ff3333;
+            text-shadow: 0 0 10px #ff0000;
+        }
+
+        button {
+            padding: 15px 40px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            background: linear-gradient(to bottom, #ffdf00, #d4af37);
+            color: #000;
+            border: none;
+            border-radius: 50px;
+            text-transform: uppercase;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(255, 215, 0, 0.3);
+            width: 100%;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(255, 215, 0, 0.6);
+        }
+
+        button:disabled {
+            background: #555;
+            color: #888;
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
+        }
+
+        #result {
+            margin-top: 30px;
+            padding: 20px;
+            border: 2px dashed #ffd700;
+            background: rgba(255, 215, 0, 0.05);
+            border-radius: 10px;
+            min-height: 80px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .hidden {
+            visibility: hidden;
+            opacity: 0;
+            transition: visibility 0s, opacity 0.5s linear;
+        }
+
+        .visible {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        #winnerName {
+            font-size: 26px;
+            font-weight: bold;
+            margin: 10px 0 0 0;
+            color: #fff;
+            text-shadow: 0 0 10px #fff;
+        }
+
+        .spin-animation {
+            animation: flicker 0.1s infinite;
+            color: #ffd700 !important;
+        }
+
+        @keyframes flicker {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="casino-container">
+        <h1>🎰 Intelektualny Jackpot 🎰</h1>
+        <p>Wprowadź nazwy graczy i zagraj o wszystko!</p>
+        
+        <div class="inputs">
+            <input type="text" id="player1" placeholder="Gracz 1">
+            <span class="vs">VS</span>
+            <input type="text" id="player2" placeholder="Gracz 2">
+        </div>
+        
+        <button id="spinBtn" onclick="drawWinner()">LOSUJ ZWYCIĘZCĘ!</button>
+        
+        <div id="result" class="hidden">
+            <h2 style="margin:0; font-size:18px; color:#ccc;">Zwycięzca:</h2>
+            <p id="winnerName"></p>
+        </div>
+    </div>
+
+    <script>
+        function drawWinner() {
+            const p1 = document.getElementById('player1').value.trim();
+            const p2 = document.getElementById('player2').value.trim();
+            const resultDiv = document.getElementById('result');
+            const winnerName = document.getElementById('winnerName');
+            const btn = document.getElementById('spinBtn');
+
+            // Sprawdzenie czy pola nie są puste
+            if (!p1 || !p2) {
+                alert("Najpierw musisz wprowadzić nazwy obu graczy przy stole!");
+                return;
+            }
+
+            // Zablokowanie przycisku na czas losowania
+            btn.disabled = true;
+            btn.innerText = "BĘBEN SIĘ KRĘCI...";
+            
+            resultDiv.classList.remove('hidden');
+            resultDiv.classList.add('visible');
+            winnerName.classList.add('spin-animation');
+
+            // Symulacja napięcia - szybkie zmienianie imion (jak w ruletce)
+            let counter = 0;
+            const interval = setInterval(() => {
+                winnerName.innerText = counter % 2 === 0 ? p1 : p2;
+                counter++;
+            }, 100); // Zmiana co 100ms
+
+            // Ostateczny wynik po 2.5 sekundy
+            setTimeout(() => {
+                clearInterval(interval);
+                winnerName.classList.remove('spin-animation');
+                
+                // Losowanie z równą szansą 50/50
+                const winner = Math.random() < 0.5 ? p1 : p2;
+                
+                // Formatowanie zwycięzcy
+                winnerName.innerText = "🏆 " + winner + " 🏆";
+                winnerName.style.color = "#ffd700"; // Złoty kolor dla wygranego
+                
+                // Odblokowanie przycisku
+                btn.disabled = false;
+                btn.innerText = "ZAGRAJ PONOWNIE!";
+            }, 2500);
+        }
+    </script>
+
+</body>
+</html>
