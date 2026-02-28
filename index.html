@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Intelektualny Jackpot</title>
+    <title>Intelektualny Jackpot - Live</title>
     <style>
         /* Stylistyka Kasyna */
         body {
@@ -38,6 +38,24 @@
             text-shadow: 0 0 10px #ffd700, 0 0 20px #d4af37;
         }
 
+        .live-badge {
+            display: inline-block;
+            background: #ff0000;
+            color: #fff;
+            font-size: 12px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            vertical-align: middle;
+            margin-left: 10px;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
         /* Sekcja zarządzania graczami */
         .add-player-section {
             background: rgba(255, 255, 255, 0.05);
@@ -52,6 +70,11 @@
         .add-player-section input {
             width: 60%;
             padding: 10px;
+            border: 2px solid #ffd700;
+            background: #222;
+            color: white;
+            border-radius: 5px;
+            outline: none;
         }
 
         .add-btn {
@@ -75,7 +98,7 @@
             margin-bottom: 25px;
         }
 
-        input[type="text"], select {
+        select {
             padding: 12px;
             border: 2px solid #ffd700;
             background: #222;
@@ -84,16 +107,11 @@
             font-size: 16px;
             text-align: center;
             outline: none;
-        }
-
-        select {
             width: 42%;
             cursor: pointer;
         }
 
-        input:focus, select:focus {
-            box-shadow: 0 0 10px #ffd700;
-        }
+        select:focus { box-shadow: 0 0 10px #ffd700; }
 
         .vs {
             font-weight: bold;
@@ -211,11 +229,14 @@
             font-weight: bold;
         }
     </style>
+
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-database-compat.js"></script>
 </head>
 <body>
 
     <div class="casino-container">
-        <h1>🎰 Intelektualny Jackpot 🎰</h1>
+        <h1>🎰 Intelektualny Jackpot <span class="live-badge">LIVE</span></h1>
         
         <div class="add-player-section">
             <input type="text" id="newPlayer" placeholder="Wpisz nazwę nowego gracza">
@@ -247,17 +268,42 @@
     </div>
 
     <script>
-        // Inicjalizacja list (pobieranie z pamięci przeglądarki lub tworzenie pustych)
-        let playersRoster = JSON.parse(localStorage.getItem('jackpotPlayers')) || [];
-        let drawHistory = JSON.parse(localStorage.getItem('jackpotHistory')) || [];
-
-        // Przy załadowaniu strony zaktualizuj interfejs
-        window.onload = function() {
-            updateDropdowns();
-            updateHistoryUI();
+        // Inicjalizacja Twojej bazy Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyBu8MIxIAAYwYnDEofUE4mZep7cor5MlFM",
+            authDomain: "intelektualny-jackpot.firebaseapp.com",
+            databaseURL: "https://intelektualny-jackpot-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "intelektualny-jackpot",
+            storageBucket: "intelektualny-jackpot.firebasestorage.app",
+            messagingSenderId: "938726974898",
+            appId: "1:938726974898:web:0f99b1384efc952c9eb0ab"
         };
 
-        // Funkcja dodająca gracza do listy
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        let playersRoster = [];
+        let drawHistory = [];
+
+        // --- NASŁUCHIWANIE BAZY W CZASIE RZECZYWISTYM ---
+        db.ref('simplePlayers').on('value', (snapshot) => {
+            playersRoster = [];
+            if (snapshot.exists()) {
+                snapshot.forEach((child) => { playersRoster.push(child.val()); });
+            }
+            updateDropdowns();
+        });
+
+        db.ref('simpleHistory').on('value', (snapshot) => {
+            drawHistory = [];
+            if (snapshot.exists()) {
+                snapshot.forEach((child) => { drawHistory.push(child.val()); });
+            }
+            drawHistory.reverse(); // Odwracamy, żeby najnowsze były na górze
+            updateHistoryUI();
+        });
+
+        // --- FUNKCJE APLIKACJI ---
         function addPlayer() {
             const input = document.getElementById('newPlayer');
             const name = input.value.trim();
@@ -272,19 +318,16 @@
                 return;
             }
 
-            playersRoster.push(name);
-            localStorage.setItem('jackpotPlayers', JSON.stringify(playersRoster)); // Zapis do pamięci
-            
-            input.value = ""; // Czyszczenie pola
-            updateDropdowns();
+            // Zapis do chmury zamiast localStorage
+            db.ref('simplePlayers').push(name);
+            input.value = ""; 
         }
 
-        // Funkcja aktualizująca listy rozwijane
         function updateDropdowns() {
             const p1Select = document.getElementById('player1');
             const p2Select = document.getElementById('player2');
             
-            // Zachowaj obecny wybór, jeśli to możliwe
+            // Zachowaj obecny wybór podczas odświeżania bazy
             const val1 = p1Select.value;
             const val2 = p2Select.value;
 
@@ -301,7 +344,6 @@
             if(playersRoster.includes(val2)) p2Select.value = val2;
         }
 
-        // Funkcja losująca
         function drawWinner() {
             const p1 = document.getElementById('player1').value;
             const p2 = document.getElementById('player2').value;
@@ -319,7 +361,6 @@
                 return;
             }
 
-            // Blokada przycisku
             btn.disabled = true;
             btn.innerText = "BĘBEN SIĘ KRĘCI...";
             
@@ -344,13 +385,11 @@
                 btn.disabled = false;
                 btn.innerText = "ZAGRAJ PONOWNIE!";
 
-                // Zapisz do historii
                 saveToHistory(p1, p2, winner);
 
             }, 2500);
         }
 
-        // Funkcja zapisująca wynik w historii
         function saveToHistory(player1, player2, winner) {
             const now = new Date();
             const timeString = now.toLocaleDateString('pl-PL') + " " + now.toLocaleTimeString('pl-PL');
@@ -362,13 +401,10 @@
                 win: winner
             };
 
-            drawHistory.unshift(record); // Dodaje na początek listy
-            localStorage.setItem('jackpotHistory', JSON.stringify(drawHistory));
-            
-            updateHistoryUI();
+            // Zapis do chmury
+            db.ref('simpleHistory').push(record);
         }
 
-        // Funkcja odświeżająca widok historii
         function updateHistoryUI() {
             const list = document.getElementById('historyList');
             list.innerHTML = "";
