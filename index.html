@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Intelektualny Jackpot - Live</title>
+    <title>Intelektualny Jackpot - Live (1vs1)</title>
     <style>
         /* Stylistyka Kasyna */
         body {
@@ -11,6 +11,7 @@
             color: #ffd700;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             display: flex;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
@@ -50,11 +51,7 @@
             animation: pulse 1.5s infinite;
         }
 
-        @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.5; }
-            100% { opacity: 1; }
-        }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
 
         /* Sekcja zarządzania graczami */
         .add-player-section {
@@ -175,13 +172,9 @@
             color: #ffd700 !important;
         }
 
-        @keyframes flicker {
-            0% { opacity: 1; }
-            50% { opacity: 0.5; }
-            100% { opacity: 1; }
-        }
+        @keyframes flicker { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
 
-        /* Sekcja Historii */
+        /* Sekcja Historii i Admina */
         .history-section {
             margin-top: 30px;
             text-align: left;
@@ -189,6 +182,7 @@
             padding: 15px;
             border-radius: 10px;
             border: 1px solid #444;
+            position: relative;
         }
 
         .history-section h3 {
@@ -217,17 +211,19 @@
             color: #ddd;
         }
 
-        .history-list li .time {
-            color: #888;
-            font-size: 12px;
-            display: block;
-            margin-bottom: 4px;
-        }
+        .history-list li .time { color: #888; font-size: 12px; display: block; margin-bottom: 4px; }
+        .history-list li .match-winner { color: #ffd700; font-weight: bold; }
 
-        .history-list li .match-winner {
-            color: #ffd700;
-            font-weight: bold;
-        }
+        /* Magia Admina */
+        .admin-only { display: none; }
+        body.is-admin .admin-only { display: block; }
+        
+        .admin-login-btn { margin-top: 30px; background: none; border: none; color: #555; cursor: pointer; text-decoration: underline; font-size: 12px; transition: color 0.3s;}
+        .admin-login-btn:hover { color: #ffd700; }
+        .kick-btn { background: #dc3545; color: white; border: none; border-radius: 3px; cursor: pointer; padding: 2px 8px; font-size: 12px; float: right; margin-top: 2px;}
+        .clear-btn { background: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer; font-size: 12px; margin-bottom: 10px; font-weight: bold;}
+        .clear-btn:hover { background: #c82333; }
+        .clear-all-btn { width: 100%; padding: 8px; margin-top: 10px; }
     </style>
 
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
@@ -241,6 +237,12 @@
         <div class="add-player-section">
             <input type="text" id="newPlayer" placeholder="Wpisz nazwę nowego gracza">
             <button class="add-btn" onclick="addPlayer()">Dodaj</button>
+        </div>
+
+        <div class="admin-only" style="margin-bottom: 25px; text-align: left; background: rgba(0,0,0,0.6); padding: 15px; border-radius: 10px; border: 1px dashed #d4af37;">
+            <h4 style="margin-top:0; color:#ccc; border-bottom: 1px solid #444; padding-bottom: 5px;">Zarządzanie graczami (<span id="playerCountDisplay">0</span>)</h4>
+            <ul class="history-list" id="activePlayersList" style="max-height: 120px;"></ul>
+            <button class="clear-btn clear-all-btn" onclick="clearPlayers()">🗑️ Wyczyść całą listę graczy</button>
         </div>
         
         <div class="inputs">
@@ -262,13 +264,15 @@
 
         <div class="history-section">
             <h3>Historia Losowań</h3>
+            <button class="clear-btn admin-only" onclick="clearHistory()">🗑️ Wyczyść historię</button>
             <ul class="history-list" id="historyList">
                 </ul>
         </div>
     </div>
 
+    <button class="admin-login-btn" onclick="loginAsAdmin()">⚙️ Panel Host (Zaloguj)</button>
+
     <script>
-        // Inicjalizacja Twojej bazy Firebase
         const firebaseConfig = {
             apiKey: "AIzaSyBu8MIxIAAYwYnDEofUE4mZep7cor5MlFM",
             authDomain: "intelektualny-jackpot.firebaseapp.com",
@@ -283,15 +287,35 @@
         const db = firebase.database();
 
         let playersRoster = [];
+        let playersData = []; // Zapisuje klucze do wyrzucania
         let drawHistory = [];
+        let isAdmin = false;
 
-        // --- NASŁUCHIWANIE BAZY W CZASIE RZECZYWISTYM ---
+        // --- LOGOWANIE ADMINA ---
+        function loginAsAdmin() {
+            const password = prompt("Wprowadź hasło Hosta:");
+            if (password === "jackpot123") {
+                isAdmin = true;
+                document.body.classList.add("is-admin");
+                alert("Zalogowano pomyślnie! Masz teraz dostęp do narzędzi administracyjnych.");
+                updateAdminUI();
+            } else if (password !== null) {
+                alert("Nieprawidłowe hasło!");
+            }
+        }
+
+        // --- NASŁUCHIWANIE BAZY ---
         db.ref('simplePlayers').on('value', (snapshot) => {
             playersRoster = [];
+            playersData = [];
             if (snapshot.exists()) {
-                snapshot.forEach((child) => { playersRoster.push(child.val()); });
+                snapshot.forEach((child) => { 
+                    playersRoster.push(child.val()); 
+                    playersData.push({ key: child.key, name: child.val() });
+                });
             }
             updateDropdowns();
+            updateAdminUI();
         });
 
         db.ref('simpleHistory').on('value', (snapshot) => {
@@ -299,7 +323,7 @@
             if (snapshot.exists()) {
                 snapshot.forEach((child) => { drawHistory.push(child.val()); });
             }
-            drawHistory.reverse(); // Odwracamy, żeby najnowsze były na górze
+            drawHistory.reverse(); 
             updateHistoryUI();
         });
 
@@ -307,27 +331,34 @@
         function addPlayer() {
             const input = document.getElementById('newPlayer');
             const name = input.value.trim();
+            if (name === "") return alert("Wpisz nazwę gracza!");
+            if (playersRoster.includes(name)) return alert("Ten gracz jest już na liście!");
 
-            if (name === "") {
-                alert("Wpisz nazwę gracza!");
-                return;
-            }
-
-            if (playersRoster.includes(name)) {
-                alert("Ten gracz jest już na liście!");
-                return;
-            }
-
-            // Zapis do chmury zamiast localStorage
             db.ref('simplePlayers').push(name);
             input.value = ""; 
+        }
+
+        function kickPlayer(key) {
+            if(confirm("Czy na pewno chcesz usunąć tego gracza z puli?")) {
+                db.ref('simplePlayers/' + key).remove();
+            }
+        }
+
+        function clearPlayers() {
+            if(confirm("Czy na pewno chcesz bezpowrotnie usunąć wszystkich graczy u każdego?")) {
+                db.ref('simplePlayers').remove();
+            }
+        }
+
+        function clearHistory() {
+            if(confirm("Czy wyczyścić całą historię losowań 1 vs 1 dla wszystkich użytkowników?")) {
+                db.ref('simpleHistory').remove();
+            }
         }
 
         function updateDropdowns() {
             const p1Select = document.getElementById('player1');
             const p2Select = document.getElementById('player2');
-            
-            // Zachowaj obecny wybór podczas odświeżania bazy
             const val1 = p1Select.value;
             const val2 = p2Select.value;
 
@@ -339,9 +370,20 @@
             p1Select.innerHTML = optionsHtml;
             p2Select.innerHTML = optionsHtml;
 
-            // Przywróć wybór
             if(playersRoster.includes(val1)) p1Select.value = val1;
             if(playersRoster.includes(val2)) p2Select.value = val2;
+        }
+
+        function updateAdminUI() {
+            document.getElementById('playerCountDisplay').innerText = playersData.length;
+            const activeList = document.getElementById('activePlayersList');
+            if(activeList) {
+                activeList.innerHTML = "";
+                playersData.forEach(p => {
+                    const kickBtnHTML = isAdmin ? `<button class="kick-btn" onclick="kickPlayer('${p.key}')">Wyrzuć</button>` : '';
+                    activeList.innerHTML += `<li style="padding: 5px 10px;">👤 ${p.name} ${kickBtnHTML}</li>`;
+                });
+            }
         }
 
         function drawWinner() {
@@ -351,15 +393,8 @@
             const winnerName = document.getElementById('winnerName');
             const btn = document.getElementById('spinBtn');
 
-            if (!p1 || !p2) {
-                alert("Musisz wybrać dwóch graczy z listy!");
-                return;
-            }
-
-            if (p1 === p2) {
-                alert("Gracz nie może grać sam ze sobą! Wybierz różnych graczy.");
-                return;
-            }
+            if (!p1 || !p2) return alert("Musisz wybrać dwóch graczy z listy!");
+            if (p1 === p2) return alert("Gracz nie może grać sam ze sobą! Wybierz różnych graczy.");
 
             btn.disabled = true;
             btn.innerText = "BĘBEN SIĘ KRĘCI...";
@@ -386,29 +421,19 @@
                 btn.innerText = "ZAGRAJ PONOWNIE!";
 
                 saveToHistory(p1, p2, winner);
-
             }, 2500);
         }
 
         function saveToHistory(player1, player2, winner) {
             const now = new Date();
             const timeString = now.toLocaleDateString('pl-PL') + " " + now.toLocaleTimeString('pl-PL');
-            
-            const record = {
-                time: timeString,
-                p1: player1,
-                p2: player2,
-                win: winner
-            };
-
-            // Zapis do chmury
+            const record = { time: timeString, p1: player1, p2: player2, win: winner };
             db.ref('simpleHistory').push(record);
         }
 
         function updateHistoryUI() {
             const list = document.getElementById('historyList');
             list.innerHTML = "";
-
             drawHistory.forEach(record => {
                 const li = document.createElement('li');
                 li.innerHTML = `
