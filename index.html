@@ -287,9 +287,32 @@
         const db = firebase.database();
 
         let playersRoster = [];
-        let playersData = []; // Zapisuje klucze do wyrzucania
+        let playersData = []; 
         let drawHistory = [];
         let isAdmin = false;
+
+        // --- INTEGRACJA Z DISCORDEM ---
+        const DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/1477909145519915069/GkWugKYmesF-chexoZo53qIPhiXxKvOoSztP0uXly9sUxiKfXd-0kk636EYwZKEU93hI";
+
+        function sendToDiscord(player1, player2, winner) {
+            const message = {
+                embeds: [{
+                    title: "🎰 Intelektualny Jackpot - Wynik Losowania!",
+                    color: 16766720, // Złoty kolor (#ffd700 w dziesiętnym)
+                    fields: [
+                        { name: "⚔️ Starcie", value: `${player1} **VS** ${player2}`, inline: false },
+                        { name: "🏆 Zwycięzca", value: `**${winner}** 👑`, inline: false }
+                    ],
+                    timestamp: new Date().toISOString()
+                }]
+            };
+
+            fetch(DISCORD_WEBHOOK_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(message)
+            }).catch(error => console.error("Błąd sieci przy wysyłaniu na Discorda:", error));
+        }
 
         // --- LOGOWANIE ADMINA ---
         function loginAsAdmin() {
@@ -421,6 +444,7 @@
                 btn.innerText = "ZAGRAJ PONOWNIE!";
 
                 saveToHistory(p1, p2, winner);
+                sendToDiscord(p1, p2, winner); // <--- Wywołanie webhooka
             }, 2500);
         }
 
